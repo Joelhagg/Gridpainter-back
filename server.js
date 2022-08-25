@@ -16,24 +16,23 @@ const io = socketIo(server, {
 
 const fieldsRouter = require("./routes/fields");
 const indexRouter = require("./routes/index");
-const picturesArray = require("../assets/fields.json");
 
 app.use(cors());
 // app.use("/", indexRouter);
 app.use("/fields", fieldsRouter);
 
-const rooms = {};
+const rooms = [];
 
 app.get("/", (req, res) => {
   res.json(picturesArray);
 });
 
-app.post("/room", (req, res) => {
+app.post("/rooms", (req, res) => {
   // skriv hantering för rum som inte finns
 
   // Här tas det nyskapade rummet emot
-  rooms = req.body.room;
-  console.log(rooms);
+  rooms.push(req.body.room)
+  res.send(req.body.room)
 
   // Nytt rum
   io.emit("roomCreated", req.body.room);
@@ -66,6 +65,12 @@ io.on("connection", function (socket) {
 
     io.emit("drawing", msg);
   });
+
+  socket.on("new room", function(roomName) {
+    let newRoom = {"roomName": roomName}
+    rooms.push(newRoom)
+    io.emit("new room", roomName)
+  })
 });
 
 server.listen(port, () => {
