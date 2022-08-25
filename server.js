@@ -28,7 +28,8 @@ app.get("/", (req, res) => {
 });
 
 app.get('/rooms', (req, res) => {
-  const allRooms = readFileSync('./assets/rooms.json');
+  let allRooms = readFileSync('./assets/rooms.json');
+  allRooms = JSON.parse(allRooms)
   res.json(allRooms)
 })
 
