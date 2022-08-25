@@ -4,7 +4,8 @@ const cors = require('cors')
 const server = require('http').createServer(app)
 const port = process.env.PORT || 3001
 const socketIo = require('socket.io')
-const picturesArray = require('./assets/fields.json')
+let picturesArray = require('./assets/fields.json')
+let colorsArray = require('./assets/colorPicker.json')
 
 const io = socketIo(server, {
   cors: {
@@ -15,15 +16,18 @@ const io = socketIo(server, {
 })
 
 const fieldsRouter = require('./routes/fields')
+const colorsRouter = require('./routes/colors')
 const indexRouter = require('./routes/index')
 
 app.use(cors());
 app.use('/', indexRouter)
 app.use('/fields', fieldsRouter)
+app.use('/colors', colorsRouter)
 
 io.on("connection", function (socket) {
   console.log("a user connected");
   io.emit("history", picturesArray);
+  io.emit("colors", colorsArray);
 
   socket.on("disconnect", function () {
       console.log("user disconnected");
@@ -33,6 +37,24 @@ io.on("connection", function (socket) {
       console.log(msg);
       io.emit("chat message", msg);
   });
+
+  socket.on("color", function (msg){
+    
+    for (let i = 0; i < colorsArray.length; i++) {
+      const color = colorsArray[i];
+
+      if (color.color === msg) {
+        console.log(colorsArray);
+        colorsArray.splice(i,1)
+        console.log(colorsArray);
+        return
+
+        
+      }
+      
+    }
+    io.emit("updateColors", colorsArray);
+  })
 
   socket.on("drawing", function (msg) {
       console.log(msg);
