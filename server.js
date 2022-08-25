@@ -47,13 +47,10 @@ io.on("connection", function (socket) {
         console.log(colorsArray);
         colorsArray.splice(i,1)
         console.log(colorsArray);
+        io.emit("updateColors", colorsArray);
         return
-
-        
       }
-      
     }
-    io.emit("updateColors", colorsArray);
   })
 
   socket.on("drawing", function (msg) {
