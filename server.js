@@ -38,7 +38,7 @@ app.post("/rooms", (req, res) => {
 
   if(allRooms){
     allRooms = JSON.parse(allRooms)
-    allRooms.push({room: req.body.room})
+    allRooms.push({room: req.body.room, savedImgs: []})
     writeFileSync('./assets/rooms.json', JSON.stringify(allRooms))
   }
 

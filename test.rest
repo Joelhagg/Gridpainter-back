@@ -2,5 +2,5 @@ POST http://localhost:3001/rooms
 Content-Type: application/json
 
 {
-    "room": "test room6"
+    "room": "test room7"
 }
