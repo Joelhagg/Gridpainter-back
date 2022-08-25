@@ -1,4 +1,5 @@
 const express = require("express");
+const bodyParser = require("body-parser");
 const app = express();
 const cors = require("cors");
 const server = require("http").createServer(app);
@@ -20,7 +21,9 @@ const indexRouter = require("./routes/index");
 app.use(cors());
 // app.use("/", indexRouter);
 app.use("/fields", fieldsRouter);
+app.use(bodyParser.json());
 
+// Sparade rummen
 const rooms = [];
 
 app.get("/", (req, res) => {
@@ -30,12 +33,13 @@ app.get("/", (req, res) => {
 app.post("/rooms", (req, res) => {
   // skriv hantering för rum som inte finns
 
-  // Här tas det nyskapade rummet emot
-  rooms.push(req.body.room)
-  res.send(req.body.room)
+  // Här tas det nyskapade rummet emot och sparas
+  rooms.push(req.body.room);
 
-  // Nytt rum
+  // Nytt rum skickas till fronten
   io.emit("roomCreated", req.body.room);
+
+  return res.json({ message: "room added", room: req.body.room });
 });
 
 io.on("connection", function (socket) {
@@ -66,11 +70,11 @@ io.on("connection", function (socket) {
     io.emit("drawing", msg);
   });
 
-  socket.on("new room", function(roomName) {
-    let newRoom = {"roomName": roomName}
-    rooms.push(newRoom)
-    io.emit("new room", roomName)
-  })
+  socket.on("new room", function (roomName) {
+    let newRoom = { roomName: roomName };
+    rooms.push(newRoom);
+    io.emit("new room", roomName);
+  });
 });
 
 server.listen(port, () => {
