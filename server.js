@@ -73,18 +73,28 @@ io.on("connection", function (socket) {
   });
 
   socket.on("color", function (msg){
-    
+
     for (let i = 0; i < colorsArray.length; i++) {
       const color = colorsArray[i];
 
       if (color.color === msg) {
-        console.log(colorsArray);
+
         colorsArray.splice(i,1)
-        console.log(colorsArray);
+
         io.emit("updateColors", colorsArray);
         return
       }
     }
+  })
+
+  socket.on("colorChange", function(msg) {
+
+    console.log(msg);
+    colorsArray.push({color: msg});
+    io.emit("updateColors", colorsArray);
+    console.log(colorsArray);
+
+    return
   })
 
   socket.on("drawing", function (msg) {
@@ -97,7 +107,6 @@ io.on("connection", function (socket) {
         pixel.color = msg.color;
       }
     }
-    console.log(picturesArray);
 
     io.emit("drawing", msg);
   });
