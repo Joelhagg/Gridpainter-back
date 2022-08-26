@@ -28,13 +28,6 @@ app.use("/", indexRouter);
 app.use("/fields", fieldsRouter);
 app.use("/colors", colorsRouter);
 
-// Sparar chatrummen vilket inte gör något om det försvinner tänker jag
-//  [  user: "user",
-//     chatRoom: "room1",
-// ]
-
-const chatRooms = [];
-
 app.get("/", (req, res) => {
   res.json(picturesArray);
 });
@@ -54,34 +47,47 @@ app.post("/rooms", (req, res) => {
     writeFileSync("./assets/rooms.json", JSON.stringify(allRooms));
   }
 
-  // Behöver vi ha dom här? Eller kan vi hantera rummen på front?
-
   io.emit("roomCreated", req.body.room);
 
   return res.json({ message: "room added", room: req.body.room });
 });
 
-io.on("connection", function (socket) {
+io.on("connection", (socket) => {
   console.log("a user connected");
   io.emit("history", picturesArray);
   io.emit("colors", colorsArray);
 
-  // Kanske skicka med vem som connectade här? ID eller nickName
+  // Användarens ID
+
+  console.log("UserID: ", socket.id);
+
+  // Nickname som tas emot
+
+  socket.on("newUser", (data) => {
+    console.log(data);
+  });
+
+  //skicka en socket.emit från front med room namnet
+  socket.on("joinRoom", (data) => {
+    socket.join(data);
+  });
+
+  // Kanske skicka med nickname som connectade här?
 
   socket.on("disconnect", () => {
     console.log("user disconnected");
 
-    // Här bored vi kunna skicka med typ användar ID eller vilket rum tänker jag
-
     socket.emit("userDisconnected", { message: "user disconnected" });
   });
 
-  socket.on("chat message", function (msg) {
+  // Här behöver vi ange vilket toomman tillhör
+  // tex: socket.to(data.room).emit("messageFromFront", data)
+  socket.on("chat message", (msg) => {
     console.log(msg);
     io.emit("chat message", msg);
   });
 
-  socket.on("color", function (msg) {
+  socket.on("color", (msg) => {
     for (let i = 0; i < colorsArray.length; i++) {
       const color = colorsArray[i];
 
@@ -95,7 +101,7 @@ io.on("connection", function (socket) {
     io.emit("updateColors", colorsArray);
   });
 
-  socket.on("drawing", function (msg) {
+  socket.on("drawing", (msg) => {
     console.log(msg);
 
     for (let i = 0; i < picturesArray.length; i++) {
