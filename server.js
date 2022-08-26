@@ -9,10 +9,9 @@ const picturesArray = require("./assets/fields.json");
 let colorsArray = require('./assets/colorPicker.json')
 const dotenv = require('dotenv').config()
 
-
 //Database 
 const mongoose = require('mongoose')
-mongoose.connect(process.env.DB_URI, {useUnifiedTopology: true, dbName: "db-gridpainter"});
+mongoose.connect(process.env.DB_URI, {useUnifiedTopology: true, dbName: process.env.DB_NAME});
 const db = mongoose.connection;
 
 db.on('error', (error) => console.error(error));
