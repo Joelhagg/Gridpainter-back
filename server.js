@@ -6,8 +6,17 @@ const server = require("http").createServer(app);
 const port = process.env.PORT || 3001;
 const socketIo = require("socket.io");
 const picturesArray = require("./assets/fields.json");
-const { readFileSync, writeFileSync } = require("fs");
 let colorsArray = require('./assets/colorPicker.json')
+
+//Database 
+const mongoose = require('mongoose')
+const uri = "mongodb+srv://admin:adminadmin@grupp6.kwb5meg.mongodb.net/?retryWrites=true&w=majority";
+
+mongoose.connect(uri, {useUnifiedTopology: true, dbName: "db-gridpainter"});
+const db = mongoose.connection;
+
+db.on('error', (error) => console.error(error));
+db.once('open', () => console.log('connected to database'));
 
 const io = socketIo(server, {
   cors: {
@@ -19,7 +28,8 @@ const io = socketIo(server, {
 
 const fieldsRouter = require('./routes/fields')
 const colorsRouter = require('./routes/colors')
-const indexRouter = require('./routes/index')
+const indexRouter = require('./routes/index');
+const Room = require("./models/Room");
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -32,31 +42,12 @@ app.get("/", (req, res) => {
   res.json(picturesArray);
 });
 
-app.get('/rooms', (req, res) => {
-  let allRooms = readFileSync('./assets/rooms.json');
-  allRooms = JSON.parse(allRooms)
-  res.json(allRooms)
+app.get('/rooms', async (req, res) => {
+  const filter = {}
+  let rooms = await Room.find(filter)
+
+  res.json(rooms)
 })
-
-app.post("/rooms", (req, res) => {
-  let allRooms = readFileSync('./assets/rooms.json');
-
-  if(allRooms){
-    allRooms = JSON.parse(allRooms)
-    allRooms.push({room: req.body.room, savedImgs: []})
-    writeFileSync('./assets/rooms.json', JSON.stringify(allRooms))
-  }
-
-  // skriv hantering för rum som inte finns
-
-  // Här tas det nyskapade rummet emot och sparas
-  //rooms.push(req.body.room);
-
-  // Nytt rum skickas till fronten
-  io.emit("roomCreated", req.body.room);
-
-  return res.json({ message: "room added", room: req.body.room });
-});
 
 io.on("connection", function (socket) {
   console.log("a user connected");
@@ -102,12 +93,15 @@ io.on("connection", function (socket) {
     io.emit("drawing", msg);
   });
 
-  /*socket.on("new room", function (roomName) {
-    let newRoom = { roomName: roomName };
-    rooms.push(newRoom);
-    io.emit("new room", roomName);
-  });*/
+  socket.on("createRoom", (room) => {
+    const newRoom = new Room({id: room.id, name: room.name})
+    newRoom.save()
+
+    socket.join(room)   
+  })
+
 });
+
 
 server.listen(port, () => {
   console.log("listens to port " + port);
