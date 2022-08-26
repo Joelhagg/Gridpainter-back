@@ -5,7 +5,6 @@ const server = require('http').createServer(app)
 const port = process.env.PORT || 3001
 const socketIo = require('socket.io')
 const picturesArray = require('./assets/fields.json')
-
 const io = socketIo(server, {
   cors: {
     origin: "http://localhost:3000",
@@ -16,10 +15,15 @@ const io = socketIo(server, {
 
 const fieldsRouter = require('./routes/fields')
 const indexRouter = require('./routes/index')
+const usersRouter = require('./routes/users')
+
+
 
 app.use(cors());
 app.use('/', indexRouter)
 app.use('/fields', fieldsRouter)
+app.use('/users', usersRouter);
+
 
 io.on("connection", function (socket) {
   console.log("a user connected");
