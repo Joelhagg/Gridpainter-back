@@ -7,12 +7,12 @@ const port = process.env.PORT || 3001;
 const socketIo = require("socket.io");
 const picturesArray = require("./assets/fields.json");
 let colorsArray = require('./assets/colorPicker.json')
+const dotenv = require('dotenv').config()
+
 
 //Database 
 const mongoose = require('mongoose')
-const uri = "mongodb+srv://admin:adminadmin@grupp6.kwb5meg.mongodb.net/?retryWrites=true&w=majority";
-
-mongoose.connect(uri, {useUnifiedTopology: true, dbName: "db-gridpainter"});
+mongoose.connect(process.env.DB_URI, {useUnifiedTopology: true, dbName: "db-gridpainter"});
 const db = mongoose.connection;
 
 db.on('error', (error) => console.error(error));
