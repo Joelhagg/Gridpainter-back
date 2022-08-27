@@ -44,9 +44,7 @@ io.on("connection", function (socket) {
       const color = colorsArray[i];
 
       if (color.color === msg) {
-       // console.log(colorsArray);
         colorsArray.splice(i,1)
-       // console.log(colorsArray);
         io.emit("updateColors", colorsArray);
         return
       }
@@ -54,8 +52,7 @@ io.on("connection", function (socket) {
   })
 
   socket.on("drawing", function (msg) {
-     // console.log(msg);
-
+    
       for (let i = 0; i < picturesArray.length; i++) {
           const pixel = picturesArray[i];
 
@@ -63,8 +60,6 @@ io.on("connection", function (socket) {
               pixel.color = msg.color
           }
       }
-     // console.log(picturesArray);
-     
       io.emit("drawing", msg);
   });
 })
