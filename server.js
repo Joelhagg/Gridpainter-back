@@ -78,7 +78,8 @@ io.on("connection", function (socket) {
   // Chatta i det valda rummet
 
   socket.on("sendMessage", (data) => {
-    socket.to(data.room).emit("receiveMessage", data);
+    console.log(data);
+    io.emit("receiveMessage", data);
   });
 
   socket.on("disconnect", function () {
