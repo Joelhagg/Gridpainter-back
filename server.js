@@ -78,8 +78,11 @@ io.on("connection", function (socket) {
   // Chatta i det valda rummet
 
   socket.on("sendMessage", (data) => {
-    console.log(data);
-    io.emit("receiveMessage", data);
+    console.log("data.room: ", data);
+    let room = data.room;
+    console.log("room: ", room);
+    console.log("message: ", data.message);
+    io.in(room).emit("receiveMessage", data.message);
   });
 
   socket.on("disconnect", function () {
