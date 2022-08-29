@@ -82,19 +82,16 @@ io.on("connection", function (socket) {
     let room = data.room;
     console.log("room: ", room);
     console.log("message: ", data.message);
-    io.in(room).emit("receiveMessage", data.message);
+    io.emit("receiveMessage", data.message);
   });
 
   socket.on("disconnect", function () {
     console.log("user disconnected");
   });
 
-  // Den här skickar till alla
-
-  // socket.on("chat message", function (msg) {
-  //   console.log(msg);
-  //   io.emit("chat message", msg);
-  // });
+  //
+  //
+  // Hanterar allt målande ///////////////////////
 
   socket.on("color", function (msg) {
     for (let i = 0; i < colorsArray.length; i++) {
@@ -118,15 +115,26 @@ io.on("connection", function (socket) {
     return;
   });
 
-  socket.on("drawing", function (msg, room1) {
+  socket.on("drawing", function (msg) {
+    let room = msg.room;
+    console.log("room: ", room);
+
+    console.log("drawing msg: ", {
+      postition: msg.field.position,
+      color: msg.field.color,
+      room: msg.room,
+    });
     for (let i = 0; i < picturesArray.length; i++) {
       const pixel = picturesArray[i];
 
-      if (pixel.position == msg.position) {
-        pixel.color = msg.color;
+      if (pixel.position == msg.field.position) {
+        pixel.color = msg.field.color;
       }
 
-      io.emit("drawing", msg);
+      io.emit("drawing", {
+        postition: msg.field.position,
+        color: msg.field.color,
+      });
     }
   });
 });
