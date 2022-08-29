@@ -82,7 +82,7 @@ io.on("connection", function (socket) {
     let room = data.room;
     console.log("room: ", room);
     console.log("message: ", data.message);
-    io.emit("receiveMessage", data.message);
+    io.to(room).emit("receiveMessage", data.message);
   });
 
   socket.on("disconnect", function () {
