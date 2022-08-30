@@ -116,25 +116,14 @@ io.on("connection", function (socket) {
   });
 
   socket.on("drawing", function (msg) {
-    let room = msg.room;
-    console.log("room: ", room);
-
-    console.log("drawing msg: ", {
-      postition: msg.field.position,
-      color: msg.field.color,
-      room: msg.room,
-    });
     for (let i = 0; i < picturesArray.length; i++) {
       const pixel = picturesArray[i];
 
-      if (pixel.position == msg.field.position) {
-        pixel.color = msg.field.color;
+      if (pixel.position == msg.position) {
+        pixel.color = msg.color;
       }
 
-      io.emit("drawing", {
-        postition: msg.field.position,
-        color: msg.field.color,
-      });
+      io.emit("drawing", msg);
     }
   });
 });
