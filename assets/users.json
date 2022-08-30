@@ -1,11 +1,14 @@
 [
     {
+        "roomSpot": "1",
         "userName": "Erik"
     },
-    {
+    {    
+        "roomSpot": "2",
         "userName": "Stina"
     },
     {
+        "roomSpot": "3",
         "userName": "Jonathan"
     }
     
