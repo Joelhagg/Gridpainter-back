@@ -15,14 +15,14 @@ const io = socketIo(server, {
 
 const fieldsRouter = require('./routes/fields')
 const indexRouter = require('./routes/index')
-const usersRouter = require('./routes/users')
+const RoomsRouter = require('./routes/RoomsArray')
 
 
 
 app.use(cors());
 app.use('/', indexRouter)
 app.use('/fields', fieldsRouter)
-app.use('/users', usersRouter);
+app.use('/RoomsArray', RoomsRouter);
 
 
 io.on("connection", function (socket) {

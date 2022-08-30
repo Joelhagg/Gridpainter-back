@@ -6,7 +6,7 @@ const fs = require("fs");
 /* GET users listing. */
 router.get('/', function(req, res, next) {
 
-  fs.readFile("./assets/users.json", function(err, data){
+  fs.readFile("./assets/RoomsArray.json", function(err, data){
    if(err){
     console.log("fel " + err);
    }
