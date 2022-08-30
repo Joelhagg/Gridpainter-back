@@ -1,15 +1,15 @@
 [
     {
-        "roomSpot": "1",
-        "userName": "Erik"
+        "roomName": "1",
+        "Members": ["nick","Hussein"]
     },
     {    
-        "roomSpot": "2",
-        "userName": "Stina"
+        "roomName": "2",
+        "userName": ["nick","Stina"]
     },
     {
-        "roomSpot": "3",
-        "userName": "Jonathan"
+        "roomName": "3",
+        "userName": ["nick","Linus"]
     }
     
 ]
