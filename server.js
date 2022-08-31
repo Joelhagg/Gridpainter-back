@@ -54,6 +54,7 @@ app.get("/rooms", async (req, res) => {
 });
 
 io.on("connection", function (socket) {
+  console.log(socket.adapter.rooms);
   console.log("a user connected");
   io.emit("history", picturesArray);
   io.emit("colors", colorsArray);
@@ -75,6 +76,13 @@ io.on("connection", function (socket) {
     console.log("joined: ", roomToJoin);
   });
 
+  // Här lämnar man rummet när man går tillbaka till rumslobbyn
+
+  socket.on("leaveRoom", (room) => {
+    console.log(`User left room: ${room.room}`);
+    socket.leave(room.room);
+  });
+
   // Chatta i det valda rummet
 
   socket.on("sendMessage", (data) => {
@@ -82,7 +90,7 @@ io.on("connection", function (socket) {
     let room = data.room;
     console.log("room: ", room);
     console.log("message: ", data.message);
-    io.to(room).emit("receiveMessage", data.message);
+    socket.to(room).emit("receiveMessage", data.message);
   });
 
   socket.on("disconnect", function () {
