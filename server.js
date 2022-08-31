@@ -9,6 +9,8 @@ const picturesArray = require("./assets/fields.json");
 let colorsArray = require("./assets/colorPicker.json");
 const dotenv = require("dotenv").config();
 
+let rooms = [];
+
 //Database
 const mongoose = require("mongoose");
 //mongoose.connect(process.env.DB_URI, { useUnifiedTopology: true, dbName: process.env.DB_NAME });
@@ -62,19 +64,39 @@ io.on("connection", function (socket) {
   // Skapar ett nytt rum
 
   socket.on("createRoom", (room) => {
-    const newRoom = new Room({ id: room.id, name: room.name });
+    const { name, id, nickname } = room;
+    const newRoom = new Room({
+      id: id,
+      name: name,
+      members: [nickname],
+    });
     newRoom.save();
+
     console.log("room", room);
 
-    socket.join(room);
+    socket.join(name);
+
+    rooms.push(newRoom);
+    console.log(rooms);
   });
 
   // Joina rummet
 
   socket.on("join", (roomToJoin) => {
+    const { name, id, nickname } = roomToJoin;
+    socket.join(name);
     console.log("joined: ", roomToJoin);
-    console.log("join");
-    socket.join(roomToJoin);
+    const roomIndex = rooms.findIndex((r) => {
+      return r.name === name;
+    });
+    if (roomIndex >= 0) {
+      const room = rooms[roomIndex];
+      room.members.push(nickname);
+      console.log(`${nickname} joined room ${name}`);
+      console.log("All the rooms", rooms);
+    } else {
+      console.log("Room not found", name);
+    }
   });
 
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
