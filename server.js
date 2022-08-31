@@ -72,8 +72,9 @@ io.on("connection", function (socket) {
   // Joina rummet
 
   socket.on("join", (roomToJoin) => {
-    socket.join(roomToJoin);
     console.log("joined: ", roomToJoin);
+    console.log("join");
+    socket.join(roomToJoin);
   });
 
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
@@ -81,16 +82,21 @@ io.on("connection", function (socket) {
   socket.on("leaveRoom", (room) => {
     console.log(`User left room: ${room.room}`);
     socket.leave(room.room);
+    // console.log(socket.adapter.rooms);
   });
 
   // Chatta i det valda rummet
 
   socket.on("sendMessage", (data) => {
-    console.log("data.room: ", data);
     let room = data.room;
-    console.log("room: ", room);
+    console.log(room);
+
+    io.to(room).emit("receiveMessage", {
+      text: data.text,
+      user: data.user,
+      userId: socket.id,
+    });
     console.log("message: ", data.message);
-    socket.to(room).emit("receiveMessage", data.message);
   });
 
   socket.on("disconnect", function () {
