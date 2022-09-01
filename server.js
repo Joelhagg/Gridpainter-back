@@ -97,6 +97,7 @@ io.on("connection", function (socket) {
     } else {
       console.log("Room not found", name);
     }
+    console.log(socket.adapter.rooms);
   });
 
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
@@ -104,7 +105,7 @@ io.on("connection", function (socket) {
   socket.on("leaveRoom", (room) => {
     console.log(`User left room: ${room.room}`);
     socket.leave(room.room);
-    // console.log(socket.adapter.rooms);
+    console.log(socket.adapter.rooms);
   });
 
   // Chatta i det valda rummet
