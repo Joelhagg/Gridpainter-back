@@ -99,6 +99,13 @@ io.on("connection", function (socket) {
     }
   });
 
+  // Här ska det så småning om gå att radera ett rum
+
+  socket.on("deleteRoom", (room) => {
+    console.log("room to delete: ", room);
+    Room.findByIdAndDelete(room);
+  });
+
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
 
   socket.on("leaveRoom", (room) => {
