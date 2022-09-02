@@ -9,6 +9,7 @@ const picturesArray = require("./assets/fields.json");
 let colorsArray = require("./assets/colorPicker.json");
 const dotenv = require("dotenv").config();
 
+//all data sparas
 let rooms = [];
 
 //Database
