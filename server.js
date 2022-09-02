@@ -55,7 +55,7 @@ app.get("/rooms", async (req, res) => {
   res.json(rooms);
 });
 
-io.on("connection", function (socket) {
+io.on("connection", (socket) => {
   console.log(socket.adapter.rooms);
   console.log("a user connected");
   io.emit("history", picturesArray);
@@ -72,12 +72,9 @@ io.on("connection", function (socket) {
     });
     newRoom.save();
 
-    console.log("room", room);
-
     socket.join(name);
 
     rooms.push(newRoom);
-    console.log(rooms);
   });
 
   // Joina rummet
@@ -99,11 +96,16 @@ io.on("connection", function (socket) {
     }
   });
 
-  // Här ska det så småning om gå att radera ett rum
+  // Här raderar man ett rum!
 
   socket.on("deleteRoom", (room) => {
-    console.log("room to delete: ", room);
-    Room.findByIdAndDelete(room);
+    Room.findByIdAndDelete(room, (error, response) => {
+      if (error) {
+        console.log("error: ", error);
+      } else {
+        console.log("result: ", response);
+      }
+    });
   });
 
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
@@ -111,7 +113,6 @@ io.on("connection", function (socket) {
   socket.on("leaveRoom", (room) => {
     console.log(`User left room: ${room.room}`);
     socket.leave(room.room);
-    // console.log(socket.adapter.rooms);
   });
 
   // Chatta i det valda rummet
@@ -128,7 +129,7 @@ io.on("connection", function (socket) {
     console.log("message: ", data.message);
   });
 
-  socket.on("disconnect", function () {
+  socket.on("disconnect", () => {
     console.log("user disconnected");
   });
 
