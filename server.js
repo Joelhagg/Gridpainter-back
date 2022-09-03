@@ -60,8 +60,16 @@ app.get("/rooms", async (req, res) => {
 
 io.on("connection", (socket) => {
   console.log("a user connected");
-  io.emit("history", picturesArray);
-  io.emit("colors", colorsArray);
+  
+  socket.on('username', (username) => {
+    socket.username = username
+    io.emit('username', socket.username)
+  })
+
+  socket.on("renderGame", () => {
+    io.emit("history", picturesArray);
+    io.emit("colors", colorsArray);
+  })
 
   // Skapar ett nytt rum
 
@@ -147,14 +155,13 @@ io.on("connection", (socket) => {
 
   socket.on("sendMessage", (data) => {
     let room = data.room;
-    console.log(room);
-
+ 
     io.to(room).emit("receiveMessage", {
       text: data.text,
-      user: data.user,
+      user: socket.username,
       userId: socket.id,
     });
-    console.log("message: ", data.message);
+
   });
 
   socket.on("disconnect", () => {
