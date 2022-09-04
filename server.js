@@ -60,16 +60,16 @@ app.get("/rooms", async (req, res) => {
 
 io.on("connection", (socket) => {
   console.log("a user connected");
-  
-  socket.on('username', (username) => {
-    socket.username = username
-    io.emit('username', socket.username)
-  })
+
+  socket.on("username", (username) => {
+    socket.username = username;
+    io.emit("username", socket.username);
+  });
 
   socket.on("renderGame", () => {
     io.emit("history", picturesArray);
     io.emit("colors", colorsArray);
-  })
+  });
 
   // Skapar ett nytt rum
 
@@ -130,6 +130,7 @@ io.on("connection", (socket) => {
     }
 
     console.log("rooms array", rooms);
+    console.log(socket.adapter.rooms);
   });
 
   // Här raderar man ett rum!
@@ -147,21 +148,26 @@ io.on("connection", (socket) => {
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
 
   socket.on("leaveRoom", (room) => {
-    console.log(`User left room: ${room.room}`);
+    console.log(`User left room: ${room}`);
     socket.leave(room.room);
+  });
+
+  // Här lämnar man rummet om man redan fanns i det för att kunna joina igen
+
+  socket.on("leaveBeforeJoining", (data) => {
+    socket.leave(data);
   });
 
   // Chatta i det valda rummet
 
   socket.on("sendMessage", (data) => {
     let room = data.room;
- 
+
     io.to(room).emit("receiveMessage", {
       text: data.text,
       user: socket.username,
       userId: socket.id,
     });
-
   });
 
   socket.on("disconnect", () => {
