@@ -9,9 +9,6 @@ const picturesArray = require("./assets/fields.json");
 let colorsArray = require("./assets/colorPicker.json");
 const dotenv = require("dotenv").config();
 
-//all data sparas
-let rooms = [];
-
 //Database
 const mongoose = require("mongoose");
 //mongoose.connect(process.env.DB_URI, { useUnifiedTopology: true, dbName: process.env.DB_NAME });
@@ -40,10 +37,16 @@ const Room = require("./models/Room");
 
 app.use(cors());
 app.use(bodyParser.json());
-
 app.use("/", indexRouter);
 app.use("/fields", fieldsRouter);
 app.use("/colors", colorsRouter);
+
+//
+//
+//
+// Nu ligger rooms array:en här istället ////////////
+
+let rooms = [];
 
 app.get("/", (req, res) => {
   res.json(picturesArray);
@@ -51,16 +54,22 @@ app.get("/", (req, res) => {
 
 app.get("/rooms", async (req, res) => {
   const filter = {};
-  let rooms = await Room.find(filter);
-
-  res.json(rooms);
+  room = await Room.find(filter);
+  res.json(room);
 });
 
-io.on("connection", function (socket) {
-  console.log(socket.adapter.rooms);
+io.on("connection", (socket) => {
   console.log("a user connected");
-  io.emit("history", picturesArray);
-  io.emit("colors", colorsArray);
+
+  socket.on("username", (username) => {
+    socket.username = username;
+    io.emit("username", socket.username);
+  });
+
+  socket.on("renderGame", () => {
+    io.emit("history", picturesArray);
+    io.emit("colors", colorsArray);
+  });
 
   // Skapar ett nytt rum
 
@@ -73,63 +82,95 @@ io.on("connection", function (socket) {
     });
     newRoom.save();
 
-    console.log("room", room);
-
     socket.join(name);
 
     rooms.push(newRoom);
-    console.log(rooms);
   });
 
   // Joina rummet
 
+  // Vi behöver lägga till så att vi kör socket.leave() när man joinar ett nytt rum!!!
+
   socket.on("join", (roomToJoin) => {
+    let roomsFromServer = [];
+
+    Room.findOne({ name: roomToJoin.name }, (err, res) => {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log("res. ", res.name);
+        roomsFromServer = res.name;
+      }
+    });
+
     const { name, id, nickname } = roomToJoin;
     socket.join(name);
     console.log("joined: ", roomToJoin);
     const roomIndex = rooms.findIndex((r) => {
       return r.name === name;
     });
+    if (rooms >= 0 && roomsFromServer != name) {
+      const { name, id, nickname } = roomToJoin;
+      const newRoom = new Room({
+        id: id,
+        name: name,
+        members: [nickname],
+      });
+      rooms.push(newRoom);
+    } else {
+      console.log("det finns minst ett rum i rooms array");
+    }
+
     if (roomIndex >= 0) {
       const room = rooms[roomIndex];
       room.members.push(nickname);
       console.log(`${nickname} joined room ${name}`);
-      console.log("All the rooms", rooms);
     } else {
       console.log("Room not found", name);
     }
+
+    console.log("rooms array", rooms);
+    console.log(socket.adapter.rooms);
   });
 
-  // Här ska det så småning om gå att radera ett rum
+  // Här raderar man ett rum!
 
   socket.on("deleteRoom", (room) => {
-    console.log("room to delete: ", room);
-    Room.findByIdAndDelete(room);
+    Room.findByIdAndDelete(room, (error, response) => {
+      if (error) {
+        console.log("error: ", error);
+      } else {
+        console.log("result: ", response);
+      }
+    });
   });
 
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
 
   socket.on("leaveRoom", (room) => {
-    console.log(`User left room: ${room.room}`);
+    console.log(`User left room: ${room}`);
     socket.leave(room.room);
-    // console.log(socket.adapter.rooms);
+  });
+
+  // Här lämnar man rummet om man redan fanns i det för att kunna joina igen
+
+  socket.on("leaveBeforeJoining", (data) => {
+    socket.leave(data);
   });
 
   // Chatta i det valda rummet
 
   socket.on("sendMessage", (data) => {
     let room = data.room;
-    console.log(room);
 
     io.to(room).emit("receiveMessage", {
       text: data.text,
-      user: data.user,
+      user: socket.username,
       userId: socket.id,
     });
-    console.log("message: ", data.message);
   });
 
-  socket.on("disconnect", function () {
+  socket.on("disconnect", () => {
     console.log("user disconnected");
   });
 
