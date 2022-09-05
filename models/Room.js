@@ -13,6 +13,17 @@ const RoomSchema = new mongoose.Schema({
   members: {
     type: Array,
   },
+  colorPalette: {
+    type: [{ color: String }],
+  },
+  gridState: {
+    type: [
+      {
+        position: String,
+        color: String,
+      },
+    ],
+  },
   savedImgs: {
     type: Array,
   },
