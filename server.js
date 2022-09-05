@@ -20,7 +20,6 @@ mongoose.connect(
 const db = mongoose.connection;
 
 db.on("error", (error) => console.error(error));
-db.once("open", () => console.log("connected to database"));
 
 const io = socketIo(server, {
   cors: {
@@ -47,6 +46,12 @@ app.use("/colors", colorsRouter);
 // Nu ligger rooms array:en här istället ////////////
 
 let rooms = [];
+db.once("open", async () => {
+  let roomsInDB = await Room.find({});
+  rooms = [...roomsInDB];
+  const roomNames = rooms.map((r) => r.name);
+  console.log("connected to database", roomNames);
+});
 
 app.get("/", (req, res) => {
   res.json(picturesArray);
@@ -55,7 +60,7 @@ app.get("/", (req, res) => {
 app.get("/rooms", async (req, res) => {
   const filter = {};
   room = await Room.find(filter);
-  res.json(room);
+  res.json(rooms);
 });
 
 io.on("connection", (socket) => {
@@ -66,9 +71,19 @@ io.on("connection", (socket) => {
     io.emit("username", socket.username);
   });
 
-  socket.on("renderGame", () => {
-    io.emit("history", picturesArray);
-    io.emit("colors", colorsArray);
+  socket.on("renderGame", (data) => {
+    const { room: roomName } = data;
+    const room = rooms.find((roomInRoomsArray) => {
+      return roomInRoomsArray.name === roomName;
+    });
+    console.log("rendergame for room " + roomName);
+    if (room) {
+      console.log("rendergam 2e");
+      io.to(roomName).emit("history", room.gridState);
+      io.to(roomName).emit("colors", room.colorPalette);
+    } else {
+      console.warn("on renderGame, cant find room ", roomName);
+    }
   });
 
   // Skapar ett nytt rum
@@ -79,9 +94,10 @@ io.on("connection", (socket) => {
       id: id,
       name: name,
       members: [nickname],
+      colorPalette: [...colorsArray],
+      gridState: [...picturesArray],
     });
     newRoom.save();
-
     socket.join(name);
 
     rooms.push(newRoom);
@@ -92,62 +108,39 @@ io.on("connection", (socket) => {
   // Vi behöver lägga till så att vi kör socket.leave() när man joinar ett nytt rum!!!
 
   socket.on("join", (roomToJoin) => {
-    let roomsFromServer = [];
+    console.log("trying to join room ", roomToJoin);
+    const room = getRoomInRooms(rooms, roomToJoin.name);
+    socket.join(roomToJoin.name);
 
-    Room.findOne({ name: roomToJoin.name }, (err, res) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log("res. ", res.name);
-        roomsFromServer = res.name;
-      }
-    });
-
-    const { name, id, nickname } = roomToJoin;
-    socket.join(name);
-    console.log("joined: ", roomToJoin);
-    const roomIndex = rooms.findIndex((r) => {
-      return r.name === name;
-    });
-    if (rooms >= 0 && roomsFromServer != name) {
-      const { name, id, nickname } = roomToJoin;
-      const newRoom = new Room({
-        id: id,
-        name: name,
-        members: [nickname],
-      });
-      rooms.push(newRoom);
+    if (room) {
+      room.members.push(roomToJoin.nickname);
+      console.log(`${roomToJoin.nickname} joined room ${roomToJoin.name}`);
     } else {
-      console.log("det finns minst ett rum i rooms array");
+      console.log("Room not found", roomToJoin.name);
     }
-
-    if (roomIndex >= 0) {
-      const room = rooms[roomIndex];
-      room.members.push(nickname);
-      console.log(`${nickname} joined room ${name}`);
-    } else {
-      console.log("Room not found", name);
-    }
-
     console.log("rooms array", rooms);
     console.log(socket.adapter.rooms);
   });
 
   // Här raderar man ett rum!
 
-  socket.on("deleteRoom", (room) => {
-    Room.findByIdAndDelete(room, (error, response) => {
+  socket.on("deleteRoom", (data) => {
+    const { _id, name } = data;
+    Room.findByIdAndDelete(_id, (error, response) => {
       if (error) {
         console.log("error: ", error);
       } else {
         console.log("result: ", response);
       }
     });
+    const roomIndex = rooms.findIndex((r) => r.name === name);
+    if (roomIndex > -1) rooms.splice(roomIndex, 1);
   });
 
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
 
   socket.on("leaveRoom", (room) => {
+    // Lämna tillbaka färgen
     console.log(`User left room: ${room}`);
     socket.leave(room.room);
   });
@@ -162,7 +155,6 @@ io.on("connection", (socket) => {
 
   socket.on("sendMessage", (data) => {
     let room = data.room;
-
     io.to(room).emit("receiveMessage", {
       text: data.text,
       user: socket.username,
@@ -171,6 +163,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    rooms.forEach((room) => {
+      room.save();
+    });
     console.log("user disconnected");
   });
 
@@ -178,37 +173,58 @@ io.on("connection", (socket) => {
   //
   // Hanterar allt målande ///////////////////////
 
-  socket.on("color", function (msg) {
-    for (let i = 0; i < colorsArray.length; i++) {
-      const color = colorsArray[i];
+  socket.on("pickedColor", (data) => {
+    console.log("pickedColor", data);
+    const { color: pickedColor, room: roomName } = data;
 
-      if (color.color === msg) {
-        colorsArray.splice(i, 1);
-
-        io.emit("updateColors", colorsArray);
-        return;
+    const room = getRoomInRooms(rooms, roomName);
+    if (room) {
+      const findColorIndex = room.colorPalette.findIndex((colorInPalette) => {
+        return colorInPalette.color === pickedColor;
+      });
+      if (findColorIndex > -1) {
+        room.colorPalette.splice(findColorIndex, 1);
+        io.to(roomName).emit("updateColors", room.colorPalette);
       }
     }
   });
 
-  socket.on("colorChange", function (msg) {
-    console.log(msg);
-    colorsArray.push({ color: msg });
-    io.emit("updateColors", colorsArray);
-    console.log(colorsArray);
-
-    return;
+  socket.on("colorChange", (data) => {
+    const {
+      newColor: newPickedColor,
+      oldColor: oldPickedColor,
+      room: roomName,
+    } = data;
+    const room = getRoomInRooms(rooms, roomName);
+    if (room) {
+      const findColorIndex = room.colorPalette.findIndex((colorInPalette) => {
+        return colorInPalette.color === newPickedColor;
+      });
+      if (findColorIndex > -1) {
+        console.log("pickedColor found color");
+        room.colorPalette.splice(findColorIndex, 1);
+        room.colorPalette.push({ color: oldPickedColor });
+        io.to(roomName).emit("updateColors", room.colorPalette);
+      }
+      io.to(data.room).emit("updateColors", room.colorPalette);
+    }
   });
 
-  socket.on("drawing", function (msg) {
-    for (let i = 0; i < picturesArray.length; i++) {
-      const pixel = picturesArray[i];
-
-      if (pixel.position == msg.position) {
-        pixel.color = msg.color;
+  socket.on("drawing", (data) => {
+    const { field, room: roomName } = data;
+    const { position, color } = field;
+    console.log("drawing", data);
+    const room = getRoomInRooms(rooms, roomName);
+    if (room) {
+      console.log("drawing found room");
+      const pixel = room.gridState.find((g) => {
+        return g.position === position;
+      });
+      if (pixel) {
+        console.log("found pixel");
+        pixel.color = color;
+        io.to(roomName).emit("drawing", room.gridState);
       }
-
-      io.emit("drawing", msg);
     }
   });
 });
@@ -217,4 +233,9 @@ server.listen(port, () => {
   console.log("listens to port " + port);
 });
 
+function getRoomInRooms(rooms, roomName) {
+  return rooms.find((roomInRoomsArray) => {
+    return roomInRoomsArray.name === roomName;
+  });
+}
 module.exports = { app, io };
