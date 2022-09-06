@@ -76,7 +76,7 @@ io.on("connection", (socket) => {
     const room = rooms.find((roomInRoomsArray) => {
       return roomInRoomsArray.name === roomName;
     });
-    console.log("rendergame for room " + roomName);
+
     if (room) {
       console.log("rendergam 2e");
       io.to(roomName).emit("history", room.gridState);
@@ -118,8 +118,6 @@ io.on("connection", (socket) => {
     } else {
       console.log("Room not found", roomToJoin.name);
     }
-    console.log("rooms array", rooms);
-    console.log(socket.adapter.rooms);
   });
 
   // Här raderar man ett rum!
@@ -135,20 +133,21 @@ io.on("connection", (socket) => {
     });
     const roomIndex = rooms.findIndex((r) => r.name === name);
     if (roomIndex > -1) rooms.splice(roomIndex, 1);
+
+    io.emit("newRoomsList", rooms);
   });
 
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
 
   socket.on("leaveRoom", (room) => {
     // Lämna tillbaka färgen
-    console.log(`User left room: ${room}`);
     socket.leave(room.room);
   });
 
   // Här lämnar man rummet om man redan fanns i det för att kunna joina igen
 
-  socket.on("leaveBeforeJoining", (data) => {
-    socket.leave(data);
+  socket.on("leaveBeforeJoining", (socketId) => {
+    socket.leave(socketId);
   });
 
   // Chatta i det valda rummet
@@ -166,7 +165,6 @@ io.on("connection", (socket) => {
     rooms.forEach((room) => {
       room.save();
     });
-    console.log("user disconnected");
   });
 
   //
@@ -174,7 +172,6 @@ io.on("connection", (socket) => {
   // Hanterar allt målande ///////////////////////
 
   socket.on("pickedColor", (data) => {
-    console.log("pickedColor", data);
     const { color: pickedColor, room: roomName } = data;
 
     const room = getRoomInRooms(rooms, roomName);
@@ -201,7 +198,6 @@ io.on("connection", (socket) => {
         return colorInPalette.color === newPickedColor;
       });
       if (findColorIndex > -1) {
-        console.log("pickedColor found color");
         room.colorPalette.splice(findColorIndex, 1);
         room.colorPalette.push({ color: oldPickedColor });
         io.to(roomName).emit("updateColors", room.colorPalette);
@@ -213,15 +209,13 @@ io.on("connection", (socket) => {
   socket.on("drawing", (data) => {
     const { field, room: roomName } = data;
     const { position, color } = field;
-    console.log("drawing", data);
+
     const room = getRoomInRooms(rooms, roomName);
     if (room) {
-      console.log("drawing found room");
       const pixel = room.gridState.find((g) => {
         return g.position === position;
       });
       if (pixel) {
-        console.log("found pixel");
         pixel.color = color;
         io.to(roomName).emit("drawing", room.gridState);
       }
