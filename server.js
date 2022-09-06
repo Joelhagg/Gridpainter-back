@@ -89,7 +89,9 @@ io.on("connection", (socket) => {
   // Skapar ett nytt rum
 
   socket.on("createRoom", (room) => {
-    const { name, id, nickname } = room;
+    const { name, id } = room;
+    const nickname = socket.username;
+
     const newRoom = new Room({
       id: id,
       name: name,
@@ -107,17 +109,18 @@ io.on("connection", (socket) => {
 
   // Vi behöver lägga till så att vi kör socket.leave() när man joinar ett nytt rum!!!
 
-  socket.on("join", (roomToJoin) => {
-    console.log("trying to join room ", roomToJoin);
-    const room = getRoomInRooms(rooms, roomToJoin.name);
-    socket.join(roomToJoin.name);
+  socket.on("join", (data) => {
+    const { name } = data;
+    const nickname = socket.username;
+    const room = getRoomInRooms(rooms, name);
+    socket.join(name);
     if (room) {
-      room.members.push(roomToJoin.nickname);
-      io.to(roomToJoin.name).emit("history", room.gridState);
-      io.to(roomToJoin.name).emit("updateColors", room.colorPalette);
-      console.log(`${roomToJoin.nickname} joined room ${roomToJoin.name}`);
+      room.members.push(nickname);
+      io.to(name).emit("history", room.gridState);
+      io.to(name).emit("updateColors", room.colorPalette);
+      console.log(`${nickname} joined room ${name}`);
     } else {
-      console.log("Room not found", roomToJoin.name);
+      console.log("Room not found", name);
     }
   });
 
@@ -141,7 +144,8 @@ io.on("connection", (socket) => {
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
 
   socket.on("leaveRoom", (data) => {
-    const { room: roomName, nickname } = data;
+    const { room: roomName } = data;
+    const nickname = socket.username;
     // Lämna tillbaka färgen
     console.log(`User ${nickname} left room: ${roomName}`);
     socket.leave(roomName);
@@ -186,8 +190,8 @@ io.on("connection", (socket) => {
 
   socket.on("pickedColor", (data) => {
     console.log("pickedColor", data);
-    const { color: pickedColor, room: roomName, nickname } = data;
-
+    const { color: pickedColor, room: roomName } = data;
+    const nickname = socket.username;
 
     const room = getRoomInRooms(rooms, roomName);
     if (room) {
@@ -203,13 +207,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("colorChange", (data) => {
-    const {
-      newColor: newPickedColor,
-      oldColor: oldPickedColor,
-      room: roomName,
-      nickname,
-    } = data;
-    console.log("colorChange", data);
+    const { newColor: newPickedColor, room: roomName } = data;
+    const nickname = socket.username;
     const room = getRoomInRooms(rooms, roomName);
     if (room) {
       const newColor = room.colorPalette.find((colorInPalette) => {
@@ -218,13 +217,14 @@ io.on("connection", (socket) => {
       const oldColor = room.colorPalette.find((colorInPalette) => {
         return colorInPalette.takenBy === nickname;
       });
-      if (newColor && newColor.takenBy === "" && oldColor) {
+      if (newColor && newColor.takenBy === "") {
         console.log(
-          `changed color from ${oldColor.color} to ${newColor.color}`
+          `${nickname} changed color from ${oldColor?.color} to ${newColor.color}`
         );
         newColor.takenBy = nickname;
-        oldColor.takenBy = "";
-        console.log("roomcolor palette", room.colorPalette);
+        if (oldColor) {
+          oldColor.takenBy = "";
+        }
 
         io.to(roomName).emit("updateColors", room.colorPalette);
       }
@@ -232,12 +232,12 @@ io.on("connection", (socket) => {
   });
 
   socket.on("drawing", (data) => {
-    const { field, room: roomName, nickname } = data;
+    const { field, room: roomName } = data;
     const { position, color } = field;
+    const nickname = socket.username;
 
     const room = getRoomInRooms(rooms, roomName);
     if (room) {
-
       const nicknameFoundInRoom = room.members.includes(nickname);
       if (nicknameFoundInRoom) {
         const nicknamesChosenColor = room.colorPalette.find(
@@ -250,7 +250,6 @@ io.on("connection", (socket) => {
             return g.position === position;
           });
           if (pixel) {
-            console.log("found pixel");
             pixel.color = color;
             io.to(roomName).emit("drawing", room.gridState);
           }
