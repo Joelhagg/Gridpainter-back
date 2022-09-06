@@ -1,17 +1,18 @@
 [
     {
-        "color": "green"
-    }, 
-
-    {
-        "color": "yellow"
-    }, 
-
-    {
-        "color": "orange"
+        "color": "green",
+        "takenBy": ""
     },
-
     {
-         "color":"black"
+        "color": "yellow",
+        "takenBy": ""
+    },
+    {
+        "color": "orange",
+        "takenBy": ""
+    },
+    {
+        "color": "black",
+        "takenBy": ""
     }
 ]
