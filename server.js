@@ -76,7 +76,7 @@ io.on("connection", (socket) => {
     const room = rooms.find((roomInRoomsArray) => {
       return roomInRoomsArray.name === roomName;
     });
-    console.log("rendergame for room " + roomName);
+
     if (room) {
       console.log("rendergam 2e");
       io.to(roomName).emit("history", room.gridState);
@@ -119,8 +119,6 @@ io.on("connection", (socket) => {
     } else {
       console.log("Room not found", roomToJoin.name);
     }
-    console.log("rooms array", rooms);
-    console.log(socket.adapter.rooms);
   });
 
   // Här raderar man ett rum!
@@ -136,6 +134,8 @@ io.on("connection", (socket) => {
     });
     const roomIndex = rooms.findIndex((r) => r.name === name);
     if (roomIndex > -1) rooms.splice(roomIndex, 1);
+
+    io.emit("newRoomsList", rooms);
   });
 
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
@@ -159,8 +159,8 @@ io.on("connection", (socket) => {
 
   // Här lämnar man rummet om man redan fanns i det för att kunna joina igen
 
-  socket.on("leaveBeforeJoining", (data) => {
-    socket.leave(data);
+  socket.on("leaveBeforeJoining", (socketId) => {
+    socket.leave(socketId);
   });
 
   // Chatta i det valda rummet
@@ -178,7 +178,6 @@ io.on("connection", (socket) => {
     rooms.forEach((room) => {
       room.save();
     });
-    console.log("user disconnected");
   });
 
   //
@@ -188,6 +187,7 @@ io.on("connection", (socket) => {
   socket.on("pickedColor", (data) => {
     console.log("pickedColor", data);
     const { color: pickedColor, room: roomName, nickname } = data;
+
 
     const room = getRoomInRooms(rooms, roomName);
     if (room) {
@@ -225,6 +225,7 @@ io.on("connection", (socket) => {
         newColor.takenBy = nickname;
         oldColor.takenBy = "";
         console.log("roomcolor palette", room.colorPalette);
+
         io.to(roomName).emit("updateColors", room.colorPalette);
       }
     }
@@ -233,9 +234,10 @@ io.on("connection", (socket) => {
   socket.on("drawing", (data) => {
     const { field, room: roomName, nickname } = data;
     const { position, color } = field;
-    console.log("drawing", data);
+
     const room = getRoomInRooms(rooms, roomName);
     if (room) {
+
       const nicknameFoundInRoom = room.members.includes(nickname);
       if (nicknameFoundInRoom) {
         const nicknamesChosenColor = room.colorPalette.find(
