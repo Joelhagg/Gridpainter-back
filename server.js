@@ -143,16 +143,16 @@ io.on("connection", (socket) => {
   socket.on("leaveRoom", (data) => {
     const { room: roomName, nickname } = data;
     // Lämna tillbaka färgen
-    console.log(`User ${nickname}left room: ${roomName}`);
+    console.log(`User ${nickname} left room: ${roomName}`);
     socket.leave(roomName);
     const room = getRoomInRooms(rooms, roomName);
     if (room) {
       room.members = room.members.filter((member) => member !== nickname);
       const memberColor = room.colorPalette.find((colorInPalette) => {
-        return colorInPalette.color === nickname;
+        return colorInPalette.takenBy === nickname;
       });
-      memberColor.takenBy = "";
-      io.to(roomToJoin.name).emit("updateColors", room.colorPalette);
+      if (memberColor) memberColor.takenBy = "";
+      io.to(roomName).emit("updateColors", room.colorPalette);
       room.save();
     }
   });
@@ -216,7 +216,7 @@ io.on("connection", (socket) => {
         return colorInPalette.color === newPickedColor;
       });
       const oldColor = room.colorPalette.find((colorInPalette) => {
-        return colorInPalette.color === oldPickedColor;
+        return colorInPalette.takenBy === nickname;
       });
       if (newColor && newColor.takenBy === "" && oldColor) {
         console.log(
@@ -224,7 +224,7 @@ io.on("connection", (socket) => {
         );
         newColor.takenBy = nickname;
         oldColor.takenBy = "";
-        console.log("roomcolor pakette", room.colorPalette);
+        console.log("roomcolor palette", room.colorPalette);
         io.to(roomName).emit("updateColors", room.colorPalette);
       }
     }
