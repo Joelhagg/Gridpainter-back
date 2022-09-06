@@ -59,7 +59,7 @@ app.get("/", (req, res) => {
 
 app.get("/rooms", async (req, res) => {
   const filter = {};
-  room = await Room.find(filter);
+  rooms = await Room.find(filter);
   res.json(rooms);
 });
 
@@ -111,9 +111,10 @@ io.on("connection", (socket) => {
     console.log("trying to join room ", roomToJoin);
     const room = getRoomInRooms(rooms, roomToJoin.name);
     socket.join(roomToJoin.name);
-
     if (room) {
       room.members.push(roomToJoin.nickname);
+      io.to(roomToJoin.name).emit("history", room.gridState);
+      io.to(roomToJoin.name).emit("updateColors", room.colorPalette);
       console.log(`${roomToJoin.nickname} joined room ${roomToJoin.name}`);
     } else {
       console.log("Room not found", roomToJoin.name);
@@ -139,9 +140,21 @@ io.on("connection", (socket) => {
 
   // Här lämnar man rummet när man går tillbaka till rumslobbyn
 
-  socket.on("leaveRoom", (room) => {
+  socket.on("leaveRoom", (data) => {
+    const { room: roomName, nickname } = data;
     // Lämna tillbaka färgen
-    socket.leave(room.room);
+    console.log(`User ${nickname} left room: ${roomName}`);
+    socket.leave(roomName);
+    const room = getRoomInRooms(rooms, roomName);
+    if (room) {
+      room.members = room.members.filter((member) => member !== nickname);
+      const memberColor = room.colorPalette.find((colorInPalette) => {
+        return colorInPalette.takenBy === nickname;
+      });
+      if (memberColor) memberColor.takenBy = "";
+      io.to(roomName).emit("updateColors", room.colorPalette);
+      room.save();
+    }
   });
 
   // Här lämnar man rummet om man redan fanns i det för att kunna joina igen
@@ -172,15 +185,18 @@ io.on("connection", (socket) => {
   // Hanterar allt målande ///////////////////////
 
   socket.on("pickedColor", (data) => {
-    const { color: pickedColor, room: roomName } = data;
+    console.log("pickedColor", data);
+    const { color: pickedColor, room: roomName, nickname } = data;
+
 
     const room = getRoomInRooms(rooms, roomName);
     if (room) {
-      const findColorIndex = room.colorPalette.findIndex((colorInPalette) => {
+      const color = room.colorPalette.find((colorInPalette) => {
         return colorInPalette.color === pickedColor;
       });
-      if (findColorIndex > -1) {
-        room.colorPalette.splice(findColorIndex, 1);
+
+      if (color && color.takenBy === "") {
+        color.takenBy = nickname;
         io.to(roomName).emit("updateColors", room.colorPalette);
       }
     }
@@ -191,33 +207,54 @@ io.on("connection", (socket) => {
       newColor: newPickedColor,
       oldColor: oldPickedColor,
       room: roomName,
+      nickname,
     } = data;
+    console.log("colorChange", data);
     const room = getRoomInRooms(rooms, roomName);
     if (room) {
-      const findColorIndex = room.colorPalette.findIndex((colorInPalette) => {
+      const newColor = room.colorPalette.find((colorInPalette) => {
         return colorInPalette.color === newPickedColor;
       });
-      if (findColorIndex > -1) {
-        room.colorPalette.splice(findColorIndex, 1);
-        room.colorPalette.push({ color: oldPickedColor });
+      const oldColor = room.colorPalette.find((colorInPalette) => {
+        return colorInPalette.takenBy === nickname;
+      });
+      if (newColor && newColor.takenBy === "" && oldColor) {
+        console.log(
+          `changed color from ${oldColor.color} to ${newColor.color}`
+        );
+        newColor.takenBy = nickname;
+        oldColor.takenBy = "";
+        console.log("roomcolor palette", room.colorPalette);
+
         io.to(roomName).emit("updateColors", room.colorPalette);
       }
-      io.to(data.room).emit("updateColors", room.colorPalette);
     }
   });
 
   socket.on("drawing", (data) => {
-    const { field, room: roomName } = data;
+    const { field, room: roomName, nickname } = data;
     const { position, color } = field;
 
     const room = getRoomInRooms(rooms, roomName);
     if (room) {
-      const pixel = room.gridState.find((g) => {
-        return g.position === position;
-      });
-      if (pixel) {
-        pixel.color = color;
-        io.to(roomName).emit("drawing", room.gridState);
+
+      const nicknameFoundInRoom = room.members.includes(nickname);
+      if (nicknameFoundInRoom) {
+        const nicknamesChosenColor = room.colorPalette.find(
+          (colorInPalette) => {
+            return colorInPalette.takenBy === nickname;
+          }
+        );
+        if (nicknamesChosenColor && nicknamesChosenColor.color === color) {
+          const pixel = room.gridState.find((g) => {
+            return g.position === position;
+          });
+          if (pixel) {
+            console.log("found pixel");
+            pixel.color = color;
+            io.to(roomName).emit("drawing", room.gridState);
+          }
+        }
       }
     }
   });

@@ -11,10 +11,10 @@ const RoomSchema = new mongoose.Schema({
     unique: true,
   },
   members: {
-    type: Array,
+    type: [String],
   },
   colorPalette: {
-    type: [{ color: String }],
+    type: [{ color: String, takenBy: String }],
   },
   gridState: {
     type: [
