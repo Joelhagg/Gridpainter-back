@@ -182,6 +182,13 @@ io.on("connection", (socket) => {
     rooms.forEach((room) => {
       room.save();
     });
+
+    // Här kan man kolla hur många sockets som är uppkopplade
+    console.log(io.engine.clientsCount);
+
+    // Om man disconnectar så skickas man till förstasidan
+
+    // socket.emti("userDisconnected");
   });
 
   //
