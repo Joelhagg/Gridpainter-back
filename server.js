@@ -81,7 +81,7 @@ io.on("connection", (socket) => {
     } else {
       console.warn("on renderGame, cant find room ", roomName);
     }
-  }); 
+  });
 
   // Skapar ett nytt rum
 
@@ -98,7 +98,6 @@ io.on("connection", (socket) => {
     });
     newRoom.save();
     socket.join(name);
-
     rooms.push(newRoom);
   });
 
@@ -110,17 +109,17 @@ io.on("connection", (socket) => {
     const { name } = data;
     const nickname = socket.username;
     const room = getRoomInRooms(rooms, name);
-    socket.userRoom = room
+    socket.userRoom = room;
 
     socket.join(name);
-      if (room) {
-        room.members.push(nickname);
-        io.to(name).emit("history", room.gridState);
-        io.to(name).emit("updateColors", room.colorPalette);
-        console.log(`${nickname} joined room ${name}`);
-      } else {
-        console.log("Room not found", name);
-      }
+    if (room) {
+      room.members.push(nickname);
+      io.to(name).emit("history", room.gridState);
+      io.to(name).emit("updateColors", room.colorPalette);
+      console.log(`${nickname} joined room ${name}`);
+    } else {
+      console.log("Room not found", name);
+    }
   });
 
   // Här raderar man ett rum!
@@ -130,7 +129,7 @@ io.on("connection", (socket) => {
     Room.findByIdAndDelete(_id, (error, response) => {
       if (error) {
         console.log("error: ", error);
-      } 
+      }
     });
     const roomIndex = rooms.findIndex((r) => r.name === name);
     if (roomIndex > -1) rooms.splice(roomIndex, 1);
@@ -178,18 +177,18 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     rooms.forEach((room) => {
       room.members.find((member, i) => {
-        if(member === socket.username){
-          room.members.splice(i, 1)
+        if (member === socket.username) {
+          room.members.splice(i, 1);
         }
-      })
+      });
 
-      room.colorPalette.find(color => {
-        if(color.takenBy === socket.username){
-          color.takenBy = ""
+      room.colorPalette.find((color) => {
+        if (color.takenBy === socket.username) {
+          color.takenBy = "";
           io.to(room).emit("updateColors", room.colorPalette);
         }
-      })
-      socket.emit('disconnected', socket)
+      });
+      socket.emit("disconnected", socket);
       room.save();
     });
 
@@ -245,7 +244,7 @@ io.on("connection", (socket) => {
 
         io.to(roomName).emit("updateColors", room.colorPalette);
       }
-      room.save()
+      room.save();
     }
   });
 
