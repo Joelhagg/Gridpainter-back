@@ -84,7 +84,6 @@ io.on("connection", (socket) => {
   }); 
 
   // Skapar ett nytt rum
-
   socket.on("createRoom", (room) => {
     const { name, id } = room;
     const nickname = socket.username;
@@ -100,7 +99,12 @@ io.on("connection", (socket) => {
     socket.join(name);
 
     rooms.push(newRoom);
+    io.emit("newRoomsList", rooms);
   });
+  
+  socket.on("getRooms", () => {
+    io.emit("newRoomsList", rooms)
+  })
 
   // Joina rummet
 
