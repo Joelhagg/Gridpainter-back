@@ -22,7 +22,7 @@ db.on("error", (error) => console.error(error));
 
 const io = socketIo(server, {
   cors: {
-    origin: "https://gridpainter-front.herokuapp.com/",
+    origin: "https://gridpainter-front-v2.herokuapp.com/",
     methods: ["GET", "POST"],
     credentials: true,
   },
