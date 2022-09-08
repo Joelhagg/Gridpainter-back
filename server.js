@@ -8,14 +8,13 @@ const socketIo = require("socket.io");
 const picturesArray = require("./assets/fields.json");
 let colorsArray = require("./assets/colorPicker.json");
 const dotenv = require("dotenv").config();
+const mongoose = require("mongoose");
 
 //Database
-const mongoose = require("mongoose");
-//mongoose.connect(process.env.DB_URI, { useUnifiedTopology: true, dbName: process.env.DB_NAME });
-mongoose.connect(
-  "mongodb+srv://admin:adminadmin@grupp6.kwb5meg.mongodb.net/?retryWrites=true&w=majority",
-  { useUnifiedTopology: true, dbName: process.env.DB_NAME }
-);
+mongoose.connect(process.env.DATABASE_URL, {
+  useUnifiedTopology: true,
+  dbName: process.env.DB_NAME,
+});
 
 const db = mongoose.connection;
 
@@ -23,7 +22,7 @@ db.on("error", (error) => console.error(error));
 
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "https://gridpainter-front.herokuapp.com/",
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -67,6 +66,7 @@ io.on("connection", (socket) => {
   socket.on("username", (username) => {
     socket.username = username;
     io.emit("username", socket.username);
+    console.log(process.env.DATABASE_URL);
   });
 
   socket.on("renderGame", (data) => {
@@ -100,10 +100,10 @@ io.on("connection", (socket) => {
     rooms.push(newRoom);
     io.emit("newRoomsList", rooms);
   });
-  
+
   socket.on("getRooms", () => {
-    io.emit("newRoomsList", rooms)
-  })
+    io.emit("newRoomsList", rooms);
+  });
 
   // Joina rummet
 
